@@ -1,0 +1,27 @@
+# RecHits creation parameters 
+
+PSet RecHitsFactory =
+{
+	string EBrechitCollection = "EcalRecHitsEB"
+	string EErechitCollection = "EcalRecHitsEE"	
+        PSet HCAL = 
+        {
+	double	   Noise = 0.30
+	double	   Threshold = 0.5
+	}
+
+        PSet ECALBarrel = 
+        {
+
+	double	   Noise = 0.040
+	double	   Threshold = -999.
+	}
+
+	PSet ECALEndcap = 
+	{
+
+	double	   Noise = 0.150
+	double	   Threshold = -999.
+	}
+}
+
