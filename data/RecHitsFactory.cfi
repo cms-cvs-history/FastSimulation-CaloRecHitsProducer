@@ -4,6 +4,7 @@ PSet RecHitsFactory =
 {
 	string EBrechitCollection = "EcalRecHitsEB"
 	string EErechitCollection = "EcalRecHitsEE"	
+	string ESrechitCollection = "EcalRecHitsES"	
         PSet HCAL = 
         {
 	double	   Noise = 0.30
@@ -23,5 +24,13 @@ PSet RecHitsFactory =
 	double	   Noise = 0.150
 	double	   Threshold = -999.
 	}
+
+	PSet ECALPreshower = 
+	{
+
+	double	   Noise = 0.000015
+	double	   Threshold = 0.000045
+	}
+
 }
 
