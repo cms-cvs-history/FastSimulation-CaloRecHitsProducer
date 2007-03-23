@@ -7,8 +7,15 @@ PSet RecHitsFactory =
 	string ESrechitCollection = "EcalRecHitsES"	
         PSet HCAL = 
         {
-	double	   Noise = 0.30
-	double	   Threshold = 0.5
+
+	double	   NoiseHB = 0.20
+	double	   NoiseHE = 0.20
+	double	   NoiseHO = 0.10
+	double	   NoiseHF = 0.20
+	double	   ThresholdHB = 0.9
+	double	   ThresholdHE = 1.1
+	double	   ThresholdHO = 1.4
+	double	   ThresholdHF = 0.5
 	}
 
         PSet ECALBarrel = 
