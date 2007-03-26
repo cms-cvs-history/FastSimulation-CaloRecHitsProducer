@@ -8,10 +8,10 @@ PSet RecHitsFactory =
         PSet HCAL = 
         {
 
-	double	   NoiseHB = 0.20
+	double	   NoiseHB = 0.18
 	double	   NoiseHE = 0.20
-	double	   NoiseHO = 0.10
-	double	   NoiseHF = 0.20
+	double	   NoiseHO = 0.18
+	double	   NoiseHF = 0.5
 	double	   ThresholdHB = 0.9
 	double	   ThresholdHE = 1.1
 	double	   ThresholdHO = 1.4
