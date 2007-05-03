@@ -1,7 +1,7 @@
-# RecHits creation parameters 
-
-PSet RecHitsFactory =
-{
+module RecHits = CaloRecHitsProducer
+  {
+    PSet RecHitsFactory =
+      {
 	string EBrechitCollection = "EcalRecHitsEB"
 	string EErechitCollection = "EcalRecHitsEE"	
 	string ESrechitCollection = "EcalRecHitsES"	
@@ -20,24 +20,22 @@ PSet RecHitsFactory =
 
         PSet ECALBarrel = 
         {
-
 	double	   Noise = 0.040
 	double	   Threshold = -999.
 	}
 
 	PSet ECALEndcap = 
 	{
-
 	double	   Noise = 0.150
 	double	   Threshold = -999.
 	}
 
 	PSet ECALPreshower = 
 	{
-
 	double	   Noise = 0.000015
 	double	   Threshold = 0.000045
 	}
-
+      }
 }
 
+   
