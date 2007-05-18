@@ -1,4 +1,4 @@
-module RecHits = CaloRecHitsProducer
+module caloRecHits = CaloRecHitsProducer
   {
     PSet RecHitsFactory =
       {
