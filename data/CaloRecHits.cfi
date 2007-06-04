@@ -1,5 +1,10 @@
 module caloRecHits = CaloRecHitsProducer
   {
+
+#the famous 0.97 factor..
+    include "SimCalorimetry/EcalSimProducers/data/ecalNotContainmentSim.cff" 
+	
+
     PSet RecHitsFactory =
       {
 	string EBrechitCollection = "EcalRecHitsEB"
