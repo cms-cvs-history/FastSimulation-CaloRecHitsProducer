@@ -1,9 +1,13 @@
-module caloRecHits = CaloRecHitsProducer
-  {
-
 #the famous 0.97 factor..
     include "SimCalorimetry/EcalSimProducers/data/ecalNotContainmentSim.cff" 
-	
+
+module caloRecHits = CaloRecHitsProducer
+  {
+#the famous 0.97 factor..
+   PSet ecal_notCont_sim = {
+                using ecal_notCont_sim
+        }
+
 
     PSet RecHitsFactory =
       {
