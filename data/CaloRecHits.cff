@@ -1,9 +1,13 @@
-module caloRecHits = CaloRecHitsProducer
-  {
-
 #the famous 0.97 factor..
     include "SimCalorimetry/EcalSimProducers/data/ecalNotContainmentSim.cff" 
-	
+
+module caloRecHits = CaloRecHitsProducer
+  {
+#the famous 0.97 factor..
+   PSet ecal_notCont_sim = {
+                using ecal_notCont_sim
+        }
+
 
     PSet RecHitsFactory =
       {
@@ -20,8 +24,8 @@ module caloRecHits = CaloRecHitsProducer
 	double	   NoiseHO = 0.18
 	double	   NoiseHF = 0.
 	double	   ThresholdHB = 0.9
-	double	   ThresholdHE = 1.1
-	double	   ThresholdHO = 1.4
+	double	   ThresholdHE = 1.4
+	double	   ThresholdHO = 1.1
 	double	   ThresholdHF = 0.5
 	}
 

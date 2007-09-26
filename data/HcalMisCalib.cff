@@ -1,0 +1,22 @@
+# Miscalibrated HCAL RecHits producer
+module hcalRecHits = HcalRecHitRecalib 
+{
+    // The input calo RecHits for HCAL
+    InputTag hbheInput = caloRecHits
+    InputTag hoInput   = caloRecHits
+    InputTag hfInput   = caloRecHits
+
+    // The name of the output (miscalibrated) HCAL RecHit Collection
+    string RecalibHBHEHitCollection = "RecalibHBHE"
+    string RecalibHFHitCollection   = "RecalibHF"
+    string RecalibHOHitCollection   = "RecalibHO"
+
+    // The miscalibration file for a 10% average miscalibration
+    untracked string fileNameHcal = "hcalmiscalib_0.1.xml"
+    // The miscalibration factor (0.5 means that 10% becomes 5%,
+    // and 0.0 means no miscalibration)
+    untracked double Refactor = 0.0
+    // The miscalibration bias (1.0 means no bias, 1.1 means 10% positive bias)
+    untracked double Refactor_mean = 1.0    
+
+}
