@@ -1,6 +1,9 @@
 #the famous 0.97 factor..
     include "SimCalorimetry/EcalSimProducers/data/ecalNotContainmentSim.cff" 
 
+include "CalibCalorimetry/Configuration/data/Hcal_FakeConditions.cff"
+
+
 module caloRecHits = CaloRecHitsProducer
   {
 #the famous 0.97 factor..
