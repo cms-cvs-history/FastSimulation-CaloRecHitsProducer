@@ -60,9 +60,6 @@ class HcalRecHitsMaker
   // coefficients for fC to ADC conversion
   std::vector<int> fctoadc_;
  
-  std::map<uint32_t,float> hbpeds_,hepeds_,hopeds_,hfpeds_;
-  std::map<uint32_t,float> hbgains_,hegains_,hogains_,hfgains_;
-
   std::vector<uint32_t> hbcells_;
   std::vector<uint32_t> hecells_;
   std::vector<uint32_t> hocells_;

@@ -19,8 +19,6 @@
 <use name=SimDataFormats/CrossingFrame>
 <use name=CondFormats/EcalObjects>
 <use name=CondFormats/DataRecord>
-<use name=CondFormats/DataRecord>
-<use name=CalibFormats/HcalObjects>
 <use name=boost>
 <use name=clhep>
 <flags EDM_PLUGIN="1">

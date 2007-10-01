@@ -13,8 +13,7 @@
 #include "Geometry/CaloGeometry/interface/CaloGeometry.h"
 #include "DataFormats/HcalDigi/interface/HBHEDataFrame.h"
 #include "CLHEP/GenericFunctions/Erf.hh"
-#include "CalibFormats/HcalObjects/interface/HcalTPGCoder.h"
-#include "CalibFormats/HcalObjects/interface/HcalTPGRecord.h"
+
 #include "FastSimulation/Utilities/interface/RandomEngine.h"
 #include "TFile.h"
 #include "TGraph.h"
@@ -115,51 +114,6 @@ void HcalRecHitsMaker::init(const edm::EventSetup &es,bool doDigis)
   nhecells_ = hecells_.size();
   nhocells_ = hocells_.size();
   nhfcells_ = hfcells_.size(); 
-
-  // Get the gain and peds
-  edm::ESHandle<HcalTPGCoder> inputCoder;
-  es.get<HcalTPGRecord>().get(inputCoder);  
-  //  std::cout << " HB " << std::endl;
-  // Fudge factor 
-  // factor accounts for the fraction of the signal outside two time-slices and
-  // other subtle reconstruction effects
-  float ff=1.2;
-
-  for(unsigned ic=0;ic<nhbcells_;++ic)
-    {
-      float ped=(*inputCoder).getLUTPedestal(HcalDetId(hbcells_[ic]));
-      float gain=(*inputCoder).getLUTGain(HcalDetId(hbcells_[ic]));
-      //      std::cout << "ieta " << HcalDetId(hbcells_[ic]).ieta() << " ped " << ped << " gain " << gain << std::endl;
-      hbpeds_.insert(std::pair<uint32_t,float>(hbcells_[ic],ped));
-      hbgains_.insert(std::pair<uint32_t,float>(hbcells_[ic],gain*ff));
-    }
-  std::cout << " HE " << std::endl;
-  for(unsigned ic=0;ic<nhecells_;++ic)
-    {
-      float ped=(*inputCoder).getLUTPedestal(HcalDetId(hecells_[ic]));
-      float gain=(*inputCoder).getLUTGain(HcalDetId(hecells_[ic]));
-      //      std::cout << "ieta " << HcalDetId(hecells_[ic]).ieta() <<" ped " << ped << " gain " << gain << std::endl;
-      hepeds_.insert(std::pair<uint32_t,float>(hecells_[ic],ped));
-      hegains_.insert(std::pair<uint32_t,float>(hecells_[ic],gain*ff));
-    }
-  std::cout << " HO " << std::endl;
-  for(unsigned ic=0;ic<nhocells_;++ic)
-    {
-      float ped=(*inputCoder).getLUTPedestal(HcalDetId(hocells_[ic]));
-      float gain=(*inputCoder).getLUTGain(HcalDetId(hocells_[ic]));
-      //      std::cout << " ped " << ped << " gain " << gain << std::endl;
-      hopeds_.insert(std::pair<uint32_t,float>(hocells_[ic],ped));
-      hogains_.insert(std::pair<uint32_t,float>(hocells_[ic],gain));
-    }
-  std::cout << " HF " << std::endl;
-  for(unsigned ic=0;ic<nhfcells_;++ic)
-    {
-      float ped=(*inputCoder).getLUTPedestal(HcalDetId(hfcells_[ic]));
-      float gain=(*inputCoder).getLUTGain(HcalDetId(hfcells_[ic]));
-      //      std::cout << " ped " << ped << " gain " << gain << std::endl;
-      hfpeds_.insert(std::pair<uint32_t,float>(hfcells_[ic],ped));
-      hfgains_.insert(std::pair<uint32_t,float>(hfcells_[ic],gain));
-    }
   initialized_=true;
 }
 
@@ -228,7 +182,7 @@ void HcalRecHitsMaker::loadHcalRecHits(edm::Event &iEvent,HBHERecHitCollection& 
   // HB
   std::map<uint32_t,std::pair<float,bool> >::const_iterator it=hbRecHits_.begin();
   std::map<uint32_t,std::pair<float,bool> >::const_iterator itend=hbRecHits_.end();
-  HcalQIESample zeroSample(0,0,0,0);
+  
   for(;it!=itend;++it)
     {
       // Check if the hit has been killed
@@ -240,12 +194,11 @@ void HcalRecHitsMaker::loadHcalRecHits(edm::Event &iEvent,HBHERecHitCollection& 
       if(doDigis_)
 	{
 	  HBHEDataFrame myDataFrame(detid);
-	  myDataFrame.setSize(2);
-	  double nfc=it->second.first/hbgains_[it->first]+hbpeds_[it->first];
+	  myDataFrame.setSize(1);
+	  double nfc=it->second.first/.177;
 	  int nadc=fCtoAdc(nfc);
 	  HcalQIESample qie(nadc, 0, 0, 0) ;
 	  myDataFrame.setSample(0,qie);
-	  myDataFrame.setSample(1,zeroSample);
 	  hbheDigis.push_back(myDataFrame);
 	}
     }
@@ -264,12 +217,11 @@ void HcalRecHitsMaker::loadHcalRecHits(edm::Event &iEvent,HBHERecHitCollection& 
       if(doDigis_)
 	{
 	  HBHEDataFrame myDataFrame(detid);
-	  myDataFrame.setSize(2);
-	  double nfc=it->second.first/hegains_[it->first]+hepeds_[it->first];
+	  myDataFrame.setSize(1);
+	  double nfc=it->second.first/.269;
 	  int nadc=fCtoAdc(nfc);
 	  HcalQIESample qie(nadc, 0, 0, 0) ;
 	  myDataFrame.setSample(0,qie);
-	  myDataFrame.setSample(1,zeroSample);
 	  hbheDigis.push_back(myDataFrame);
 	}
     }
@@ -300,8 +252,8 @@ void HcalRecHitsMaker::loadHcalRecHits(edm::Event &iEvent,HBHERecHitCollection& 
 	{
 	  HFDataFrame myDataFrame(detid);
 	  myDataFrame.setSize(1);
-	  double nfc=it->second.first/hfgains_[it->first]+hfpeds_[it->first];
-	  int nadc=fCtoAdc(nfc/2.6);
+	  double nfc=it->second.first/.14;
+	  int nadc=fCtoAdc(nfc*2.6);
 	  HcalQIESample qie(nadc, 0, 0, 0) ;
 	  myDataFrame.setSample(0,qie);
 	  hfDigis.push_back(myDataFrame);
@@ -442,7 +394,7 @@ void HcalRecHitsMaker::noisifySubdet(std::map<uint32_t,std::pair<float,bool> >& 
 	  ++ncell;
 	}
     }
-  //   edm::LogInfo("CaloRecHitsProducer") << "CaloRecHitsProducer : added noise in "<<  ncell << " HCAL cells "  << std::endl;
+   edm::LogInfo("CaloRecHitsProducer") << "CaloRecHitsProducer : added noise in "<<  ncell << " HCAL cells "  << std::endl;
 }
 
 void HcalRecHitsMaker::clean()
