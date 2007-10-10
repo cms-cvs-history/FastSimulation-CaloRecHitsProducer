@@ -17,6 +17,7 @@
 #include "FastSimulation/Utilities/interface/RandomEngine.h"
 #include "TFile.h"
 #include "TGraph.h"
+#include <fstream>
 
 class RandomEngine;
 
@@ -374,8 +375,8 @@ void HcalRecHitsMaker::noisify()
 void HcalRecHitsMaker::noisifySubdet(std::map<uint32_t,std::pair<float,bool> >& theMap, const std::vector<uint32_t>& thecells, unsigned ncells, double hcalHotFraction_)
 {
 
-  unsigned mean=(unsigned)((double)(ncells-theMap.size())*hcalHotFraction_);
-  unsigned nhcal = (unsigned)(random_->poissonShoot(mean));
+  double mean = (double)(ncells-theMap.size())*hcalHotFraction_;
+  unsigned nhcal = random_->poissonShoot(mean);
   
   unsigned ncell=0;
   unsigned cellindex=0;
