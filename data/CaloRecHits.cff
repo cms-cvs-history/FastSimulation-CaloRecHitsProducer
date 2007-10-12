@@ -1,6 +1,17 @@
 #the famous 0.97 factor..
     include "SimCalorimetry/EcalSimProducers/data/ecalNotContainmentSim.cff" 
 
+# The includes needed for the HCAL digi
+include "CalibCalorimetry/Configuration/data/Hcal_FakeConditions.cff"
+include "SimCalorimetry/HcalTrigPrimProducers/data/hcaltpdigi.cff"
+replace hcalTriggerPrimitiveDigis.inputLabel = caloRecHits
+
+#The includes needed for the ECAL digis
+include "CalibCalorimetry/Configuration/data/Ecal_FakeConditions.cff"
+include  "SimCalorimetry/EcalTrigPrimProducers/data/ecalTriggerPrimitiveDigis.cff"
+replace ecalTriggerPrimitiveDigis.Famos=true
+replace ecalTriggerPrimitiveDigis.Label="RecHits"
+
 module caloRecHits = CaloRecHitsProducer
   {
 #the famous 0.97 factor..
