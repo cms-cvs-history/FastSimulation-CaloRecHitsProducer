@@ -14,14 +14,19 @@ replace ecalTriggerPrimitiveDigis.Label="RecHits"
 
 module caloRecHits = CaloRecHitsProducer
   {
-#the famous 0.97 factor..
-   PSet ContFact = {
-                using ecal_notCont_sim
-        }
+    
+    # Set the following to false if you want to use the default CLHEP
+    # random engine
+    bool UseTRandomEngine = true
+
+    #the famous 0.97 factor..
+    PSet ContFact = {
+	using ecal_notCont_sim
+    }
 
 
     PSet RecHitsFactory =
-      {
+    {
 	string EBrechitCollection = "EcalRecHitsEB"
 	string EErechitCollection = "EcalRecHitsEE"	
 	string ESrechitCollection = "EcalRecHitsES"	
@@ -29,35 +34,35 @@ module caloRecHits = CaloRecHitsProducer
 	bool doMiscalib = false // for ECAL only
         PSet HCAL = 
         {
-
-	double	   NoiseHB = 0.18
-	double	   NoiseHE = 0.20 
-	double	   NoiseHO = 0.18
-	double	   NoiseHF = 0.
-	double	   ThresholdHB = 0.9
-	double	   ThresholdHE = 1.4
-	double	   ThresholdHO = 1.1
-	double	   ThresholdHF = 0.5
+	    
+	    double	   NoiseHB = 0.18
+	    double	   NoiseHE = 0.20 
+	    double	   NoiseHO = 0.18
+	    double	   NoiseHF = 0.
+	    double	   ThresholdHB = 0.9
+	    double	   ThresholdHE = 1.4
+	    double	   ThresholdHO = 1.1
+	    double	   ThresholdHF = 0.5
 	}
-
+	
         PSet ECALBarrel = 
         {
-	double	   Noise = 0.040
-	double	   Threshold = -999.
+	    double	   Noise = 0.040
+	    double	   Threshold = -999.
 	}
-
+	
 	PSet ECALEndcap = 
 	{
-	double	   Noise = 0.150
-	double	   Threshold = -999.
+	    double	   Noise = 0.150
+	    double	   Threshold = -999.
 	}
-
+	
 	PSet ECALPreshower = 
 	{
-	double	   Noise = 0.000015
-	double	   Threshold = 0.000045
+	    double	   Noise = 0.000015
+	    double	   Threshold = 0.000045
 	}
-      }
+    }
 }
 
    
