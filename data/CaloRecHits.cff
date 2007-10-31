@@ -5,12 +5,14 @@
 include "CalibCalorimetry/Configuration/data/Hcal_FakeConditions.cff"
 include "SimCalorimetry/HcalTrigPrimProducers/data/hcaltpdigi.cff"
 replace hcalTriggerPrimitiveDigis.inputLabel = caloRecHits
+replace hcalTriggerPrimitiveDigis.peakFilter = false
 
 #The includes needed for the ECAL digis
 include "CalibCalorimetry/Configuration/data/Ecal_FakeConditions.cff"
+include "Geometry/EcalMapping/data/EcalMapping.cfi"
 include  "SimCalorimetry/EcalTrigPrimProducers/data/ecalTriggerPrimitiveDigis.cff"
 replace ecalTriggerPrimitiveDigis.Famos=true
-replace ecalTriggerPrimitiveDigis.Label="RecHits"
+replace ecalTriggerPrimitiveDigis.Label="caloRecHits"
 
 module caloRecHits = CaloRecHitsProducer
   {
