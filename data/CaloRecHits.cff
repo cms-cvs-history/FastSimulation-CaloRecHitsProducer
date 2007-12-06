@@ -31,7 +31,7 @@ module caloRecHits = CaloRecHitsProducer
 	string EErechitCollection = "EcalRecHitsEE"	
 	string ESrechitCollection = "EcalRecHitsES"	
 	bool doDigis = false // not for PS
-	bool doMiscalib = false // for ECAL only
+	bool doMiscalib = false // not for PS
         PSet HCAL = 
         {
 	    
@@ -43,18 +43,28 @@ module caloRecHits = CaloRecHitsProducer
 	    double	   ThresholdHE = 1.4
 	    double	   ThresholdHO = 1.1
 	    double	   ThresholdHF = 0.5
+
+
+	    // For miscalibration (used only if Miscalib=true)
+	    double Refactor = 1.
+	    double Refactor_mean = 1.
+	    string fileNameHcal="hcalmiscalib_0.1.xml"
 	}
 	
         PSet ECALBarrel = 
         {
 	    double	   Noise = 0.040
 	    double	   Threshold = -999.
+	    double         Refactor = 1.
+	    double         Refactor_mean = 1.
 	}
 	
 	PSet ECALEndcap = 
 	{
 	    double	   Noise = 0.150
 	    double	   Threshold = -999.
+	    double         Refactor = 1.
+	    double         Refactor_mean = 1.
 	}
 	
 	PSet ECALPreshower = 
