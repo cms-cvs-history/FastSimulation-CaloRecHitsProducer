@@ -1,0 +1,15 @@
+module caloRecHitCopy = CaloRecHitCopy { 
+
+    vuint32 InputRecHitCollectionTypes = { 2, 3 }
+    
+    VInputTag InputRecHitCollections = {    
+	"caloRecHits:EcalRecHitsEB", 
+	"caloRecHits:EcalRecHitsEE" 
+    }
+
+    vstring OutputRecHitCollections = { 
+	"EcalRecHitsEB",
+	"EcalRecHitsEE" 
+    }
+
+}  
