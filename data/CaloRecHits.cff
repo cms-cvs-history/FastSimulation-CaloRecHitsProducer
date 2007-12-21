@@ -12,6 +12,8 @@ include  "SimCalorimetry/EcalTrigPrimProducers/data/ecalTriggerPrimitiveDigis.cf
 replace ecalTriggerPrimitiveDigis.Famos=true
 replace ecalTriggerPrimitiveDigis.Label="caloRecHits"
 
+include "SimCalorimetry/HcalSimProducers/data/hcalSimParameters.cfi"
+
 module caloRecHits = CaloRecHitsProducer
   {
     
@@ -24,6 +26,9 @@ module caloRecHits = CaloRecHitsProducer
 	using ecal_notCont_sim
     }
 
+    PSet hcalSimParam ={
+	using hcalSimParameters
+    }
 
     PSet RecHitsFactory =
     {
