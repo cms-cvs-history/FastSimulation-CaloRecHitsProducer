@@ -24,6 +24,7 @@
 #include "CalibCalorimetry/CaloMiscalibTools/interface/CaloMiscalibMapHcal.h"
 #include "TFile.h"
 #include "TGraph.h"
+#include "TROOT.h"
 #include <fstream>
 
 class RandomEngine;
