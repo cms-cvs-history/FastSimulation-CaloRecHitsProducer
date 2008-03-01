@@ -11,7 +11,7 @@
 <use name=FastSimulation/Particle>
 <use name=FastSimulation/Utilities>
 <use name=FastSimulation/CaloGeometryTools>
-<use name=DQMServices/CoreROOT>
+<use name=DQMServices/Core>
 
 <library file=DigiCheck.cc name=DigiCheck>
 <flags EDM_PLUGIN=1>
