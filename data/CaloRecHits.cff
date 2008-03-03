@@ -40,15 +40,18 @@ module caloRecHits = CaloRecHitsProducer
         PSet HCAL = 
         {
 	    
-	    double	   NoiseHB = 0.18
-	    double	   NoiseHE = 0.20 
-	    double	   NoiseHO = 0.18
-	    double	   NoiseHF = 0.
-	    double	   ThresholdHB = 0.9
-	    double	   ThresholdHE = 1.4
-	    double	   ThresholdHO = 1.1
-	    double	   ThresholdHF = 0.5
-
+	    double	  NoiseHB = 0.18
+	    double	  NoiseHE = 0.20 
+	    double	  NoiseHO = 0.18
+	    double	  NoiseHF = 0.
+	    double	  ThresholdHB = 0.9
+	    double	  ThresholdHE = 1.4
+	    double	  ThresholdHO = 1.1
+	    double	  ThresholdHF = 0.5
+	    double        SaturationHB = 1500
+	    double        SaturationHE = 14000
+            double        SaturationHO = 14000
+            double        SaturationHF = 14000
 
 	    // For miscalibration (used only if Miscalib=true)
 	    double Refactor = 1.
