@@ -40,9 +40,9 @@ module caloRecHits = CaloRecHitsProducer
         PSet HCAL = 
         {
 	    
-	    double	  NoiseHB = 0.18
-	    double	  NoiseHE = 0.20 
-	    double	  NoiseHO = 0.18
+	    double	  NoiseHB = 0.23
+	    double	  NoiseHE = 0.31 
+	    double	  NoiseHO = 0.17
 	    double	  NoiseHF = 0.
 	    double	  ThresholdHB = 0.9
 	    double	  ThresholdHE = 1.4
