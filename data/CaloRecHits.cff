@@ -3,24 +3,20 @@
 
 # The includes needed for the HCAL digi
 include "SimCalorimetry/HcalTrigPrimProducers/data/hcaltpdigi.cff"
-replace hcalTriggerPrimitiveDigis.inputLabel = caloRecHits
-replace hcalTriggerPrimitiveDigis.peakFilter = false
+replace simHcalTriggerPrimitiveDigis.inputLabel = caloRecHits
+replace simHcalTriggerPrimitiveDigis.peakFilter = false
 
 #The includes needed for the ECAL digis
 include "Geometry/EcalMapping/data/EcalMapping.cfi"
 include  "SimCalorimetry/EcalTrigPrimProducers/data/ecalTriggerPrimitiveDigis.cff"
-replace ecalTriggerPrimitiveDigis.Famos=true
-replace ecalTriggerPrimitiveDigis.Label="caloRecHits"
+replace simEcalTriggerPrimitiveDigis.Famos=true
+replace simEcalTriggerPrimitiveDigis.Label="caloRecHits"
 
 include "SimCalorimetry/HcalSimProducers/data/hcalSimParameters.cfi"
 
 module caloRecHits = CaloRecHitsProducer
   {
     
-    # Set the following to false if you want to use the default CLHEP
-    # random engine
-    bool UseTRandomEngine = true
-
     #the famous 0.97 factor..
     PSet ContFact = {
 	using ecal_notCont_sim
