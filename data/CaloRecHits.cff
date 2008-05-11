@@ -35,7 +35,7 @@ module caloRecHits = CaloRecHitsProducer
 	bool doMiscalib = false // not for PS
         PSet HCAL = 
         {
-	    
+	    InputTag       MixedSimHits = mix:famosSimHitsHcalHits
 	    double	  NoiseHB = 0.23
 	    double	  NoiseHE = 0.31 
 	    double	  NoiseHO = 0.17
@@ -60,7 +60,8 @@ module caloRecHits = CaloRecHitsProducer
 	    double	   Noise = 0.040
 	    double	   Threshold = -999.
 	    double         Refactor = 1.
-	    double         Refactor_mean = 1.
+	    double         Refactor_mean = 1.	
+	    InputTag        MixedSimHits = mix:famosSimHitsEcalHitsEB
 	}
 	
 	PSet ECALEndcap = 
@@ -69,12 +70,14 @@ module caloRecHits = CaloRecHitsProducer
 	    double	   Threshold = -999.
 	    double         Refactor = 1.
 	    double         Refactor_mean = 1.
+	    InputTag        MixedSimHits = mix:famosSimHitsEcalHitsEE
 	}
 	
 	PSet ECALPreshower = 
 	{
 	    double	   Noise = 0.000015
 	    double	   Threshold = 0.000045
+	    InputTag        MixedSimHits = mix:famosSimHitsEcalHitsES
 	}
     }
 }
