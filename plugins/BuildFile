@@ -1,0 +1,8 @@
+<library name="CastorTowerProducer" file="CastorTowerProducer.cc">
+ <use name=FWCore/Framework>
+ <use name=FWCore/ParameterSet>
+ <use name=DataFormats/CastorReco>
+ <use name=DataFormats/JetReco>
+ <use name=DataFormats/Math>
+ <flags EDM_PLUGIN=1>
+</library>
