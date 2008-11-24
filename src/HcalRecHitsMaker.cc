@@ -283,7 +283,7 @@ void HcalRecHitsMaker::init(const edm::EventSetup &es,bool doDigis,bool doMiscal
       for(unsigned ig=0;ig<4;++ig)
 	mgain+=theDbService->getGain(theDetIds_[hfhi_[ic]])->getValue(ig);
       // additional 1/2 factor for the HF (Salavat)
-      noisesigma_[hfhi_[ic]]=noiseInfCfromDB(theDbService,theDetIds_[hfhi_[ic]])*mgain*0.25*0.5;
+      noisesigma_[hfhi_[ic]]=noiseInfCfromDB(theDbService,theDetIds_[hfhi_[ic]])*mgain*0.25;
       //      std::cout << " NOISEHF " << theDetIds_[hfhi_[ic]].ieta() << " " << noisesigma_[hfhi_[ic]] << "  "<< std::endl;
 
       mgain*=2500.;
@@ -665,6 +665,9 @@ double HcalRecHitsMaker::noiseInfCfromDB(const HcalDbService * conditions,const 
   double ssqq_3 = pedWidth->getSigma(2,2);
   double ssqq_4 = pedWidth->getSigma(3,3);
 
+  // correction factors (hb,he,ho,hf)
+  static float corrfac[4]={1.25,1.20,1.40,0.67};
+
   int sub   = detId.subdet();
   
   // effective RecHits (for this particular detId) noise calculation :
@@ -681,12 +684,14 @@ double HcalRecHitsMaker::noiseInfCfromDB(const HcalDbService * conditions,const 
   double RMS1   = sqrt(sig_sq_mean) * sqrt (2.*beta*beta + alpha*alpha) ;
   double RMS4   = sqrt(sig_sq_mean) * sqrt (2.*beta*beta + 2.*(alpha-beta)*(alpha-beta) + 2.*(alpha-2.*beta)*(alpha-2.*beta)) ;
 
-  double noise_rms_GeV;
-  if(sub == 4)  noise_rms_GeV = RMS1;
-  else          noise_rms_GeV = RMS4;
+  double noise_rms_fC;
+  if(sub == 4)  noise_rms_fC = RMS1;
+  else          noise_rms_fC = RMS4;
+
+  noise_rms_fC *= corrfac[sub-1];
 
   // to convert from above fC to GeV - multiply by gain (GeV/fC)        
   //  const HcalGain*  gain = conditions->getGain(detId); 
   //  double noise_rms_GeV = noise_rms_fC * gain->getValue(0); // Noise RMS (GeV) for detId channel
-  return noise_rms_GeV;
+  return noise_rms_fC;
 }
