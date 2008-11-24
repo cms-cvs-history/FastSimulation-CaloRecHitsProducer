@@ -265,7 +265,7 @@ void HcalRecHitsMaker::init(const edm::EventSetup &es,bool doDigis,bool doMiscal
       for(unsigned ig=0;ig<4;++ig)
 	mgain+=theDbService->getGain(theDetIds_[hohi_[ic]])->getValue(ig);
       noisesigma_[hohi_[ic]]=noiseInfCfromDB(theDbService,theDetIds_[hohi_[ic]])*mgain*0.25;
-      //    std::cout << " NOISEHO " << theDetIds_[hohi_[ic]].ieta() << " " << noisesigma_[hohi_[ic]] << "  "<< std::endl;
+      //      std::cout << " NOISEHO " << theDetIds_[hohi_[ic]].ieta() << " " << noisesigma_[hohi_[ic]] << "  "<< std::endl;
 
       mgain*=2500.;
       sat_[hohi_[ic]]=(doSaturation_)?mgain:99999.;
@@ -664,6 +664,8 @@ double HcalRecHitsMaker::noiseInfCfromDB(const HcalDbService * conditions,const 
   double ssqq_2 = pedWidth->getSigma(1,1);
   double ssqq_3 = pedWidth->getSigma(2,2);
   double ssqq_4 = pedWidth->getSigma(3,3);
+
+  int sub   = detId.subdet();
   
   // effective RecHits (for this particular detId) noise calculation :
   
@@ -671,12 +673,20 @@ double HcalRecHitsMaker::noiseInfCfromDB(const HcalDbService * conditions,const 
   
   // f - external parameter (currently set to 0.5 in the FullSim) !!!
   double f=0.5;
-  double term = sqrt (1. - 2.*f*f);  // intermediate term
-  
-  double noise_rms_fC = sqrt(sig_sq_mean) * sqrt(2.) * sqrt(1. + term - f /(1. + term)); 
-  
+
+  double term  = sqrt (1. + sqrt(1. - 2.*f*f));
+  double alpha = sqrt (0.5) * term;
+  double beta  = sqrt (0.5) * f / term;
+
+  double RMS1   = sqrt(sig_sq_mean) * sqrt (2.*beta*beta + alpha*alpha) ;
+  double RMS4   = sqrt(sig_sq_mean) * sqrt (2.*beta*beta + 2.*(alpha-beta)*(alpha-beta) + 2.*(alpha-2.*beta)*(alpha-2.*beta)) ;
+
+  double noise_rms_GeV;
+  if(sub == 4)  noise_rms_GeV = RMS1;
+  else          noise_rms_GeV = RMS4;
+
   // to convert from above fC to GeV - multiply by gain (GeV/fC)        
   //  const HcalGain*  gain = conditions->getGain(detId); 
   //  double noise_rms_GeV = noise_rms_fC * gain->getValue(0); // Noise RMS (GeV) for detId channel
-  return noise_rms_fC;
+  return noise_rms_GeV;
 }
