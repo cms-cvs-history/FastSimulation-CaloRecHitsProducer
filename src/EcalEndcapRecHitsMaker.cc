@@ -18,11 +18,11 @@
 
 
 EcalEndcapRecHitsMaker::EcalEndcapRecHitsMaker(edm::ParameterSet const & p, 
-					       edm::ParameterSet const & pcalib,
+
 					       const RandomEngine * myrandom) 
   : random_(myrandom)
 {
-  edm::ParameterSet RecHitsParameters = p.getParameter<edm::ParameterSet>("ECALEndcap");
+  edm::ParameterSet RecHitsParameters=p.getParameter<edm::ParameterSet>("ECALEndcap");
   inputCol_=RecHitsParameters.getParameter<edm::InputTag>("MixedSimHits");
   noise_ = RecHitsParameters.getParameter<double>("Noise");
   threshold_ = RecHitsParameters.getParameter<double>("Threshold");
@@ -30,7 +30,8 @@ EcalEndcapRecHitsMaker::EcalEndcapRecHitsMaker(edm::ParameterSet const & p,
   refactor_mean_ = RecHitsParameters.getParameter<double> ("Refactor_mean");
   theCalorimeterHits_.resize(20000,0.);
   noisified_ = (noise_==0.);
-  double c1 = pcalib.getParameter<double>("EEs25notContainment");
+  edm::ParameterSet CalibParameters=RecHitsParameters.getParameter<edm::ParameterSet>("ContFact"); 
+  double c1 = CalibParameters.getParameter<double>("EEs25notContainment");
   calibfactor_= 1./c1;
 
   adcToGeV_= 0.060;

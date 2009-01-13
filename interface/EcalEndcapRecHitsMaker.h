@@ -17,7 +17,7 @@ namespace edm {
 class EcalEndcapRecHitsMaker
 {
  public:
-  EcalEndcapRecHitsMaker(edm::ParameterSet const & p,edm::ParameterSet const & p2,const RandomEngine* random);
+  EcalEndcapRecHitsMaker(edm::ParameterSet const & p,const RandomEngine* random);
   ~EcalEndcapRecHitsMaker();
 
   void loadEcalEndcapRecHits(edm::Event &iEvent, EERecHitCollection & ecalHits,EEDigiCollection & ecalDigis);

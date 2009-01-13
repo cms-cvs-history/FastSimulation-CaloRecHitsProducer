@@ -17,7 +17,7 @@ namespace edm {
 class EcalBarrelRecHitsMaker
 {
  public:
-  EcalBarrelRecHitsMaker(edm::ParameterSet const & p, edm::ParameterSet const & p2,const RandomEngine* );
+  EcalBarrelRecHitsMaker(edm::ParameterSet const & p, const RandomEngine* );
   ~EcalBarrelRecHitsMaker();
 
   void loadEcalBarrelRecHits(edm::Event &iEvent, EBRecHitCollection & ecalHits,EBDigiCollection & ecaldigis);

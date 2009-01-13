@@ -16,19 +16,20 @@
 #include "CondFormats/DataRecord/interface/EcalIntercalibConstantsRcd.h"
 
 EcalBarrelRecHitsMaker::EcalBarrelRecHitsMaker(edm::ParameterSet const & p,
-					       edm::ParameterSet const & pcalib,
 					       const RandomEngine* myrandom)
   : random_(myrandom)
 {
-  edm::ParameterSet RecHitsParameters = p.getParameter<edm::ParameterSet>("ECALBarrel");
+  edm::ParameterSet RecHitsParameters=p.getParameter<edm::ParameterSet>("ECALBarrel");
   inputCol_=RecHitsParameters.getParameter<edm::InputTag>("MixedSimHits");
   noise_ = RecHitsParameters.getParameter<double>("Noise");
   threshold_ = RecHitsParameters.getParameter<double>("Threshold");
   refactor_ = RecHitsParameters.getParameter<double> ("Refactor");
   refactor_mean_ = RecHitsParameters.getParameter<double> ("Refactor_mean");
+
   theCalorimeterHits_.resize(62000,0.);
   noisified_ = (noise_==0.);
-  double c1=pcalib.getParameter<double>("EBs25notContainment"); 
+  edm::ParameterSet CalibParameters = RecHitsParameters.getParameter<edm::ParameterSet>("ContFact"); 
+  double c1=CalibParameters.getParameter<double>("EBs25notContainment"); 
   calibfactor_=1./c1;
   adcToGeV_= 0.035;
   minAdc_ = 200;

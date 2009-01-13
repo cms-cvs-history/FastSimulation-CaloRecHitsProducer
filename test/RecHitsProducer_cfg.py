@@ -6,7 +6,7 @@ process = cms.Process("PROD")
 process.load("FastSimulation.Configuration.RandomServiceInitialization_cff")
 
 process.maxEvents = cms.untracked.PSet(
-    input = cms.untracked.int32(1000)
+    input = cms.untracked.int32(100)
 )
 
 process.source = cms.Source("PythiaSource",
@@ -78,7 +78,6 @@ process.load("Configuration.StandardSequences.MagneticField_40T_cff")
 process.VolumeBasedMagneticFieldESProducer.useParametrizedTrackerField = True
 process.famosSimHits.SimulateCalorimetry = True
 process.famosSimHits.SimulateTracking = False
-process.caloRecHits.RecHitsFactory.doDigis = True
 
 
 process.o1 = cms.OutputModule("PoolOutputModule",
@@ -87,7 +86,7 @@ process.o1 = cms.OutputModule("PoolOutputModule",
 
 process.digiCheck = cms.EDFilter("DigiCheck")
 
-process.p1 = cms.Path(process.famosWithCaloHits*process.digiCheck)
+process.p1 = cms.Path(process.famosWithCaloHits)
 
 
 process.load("FWCore.MessageService.MessageLogger_cfi")
