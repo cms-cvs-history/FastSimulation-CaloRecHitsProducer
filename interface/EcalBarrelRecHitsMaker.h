@@ -3,10 +3,12 @@
 
 #include "DataFormats/EcalRecHit/interface/EcalRecHitCollections.h"
 #include "DataFormats/EcalDigi/interface/EcalDigiCollections.h"
+#include "DataFormats/EcalDetId/interface/EcalTrigTowerDetId.h"
 #include "FWCore/ParameterSet/interface/InputTag.h"
 //#include <boost/cstdint.hpp>
 
 class RandomEngine;
+class EcalTrigTowerConstituentsMap;
 
 namespace edm { 
   class ParameterSet;
@@ -27,6 +29,8 @@ class EcalBarrelRecHitsMaker
   void clean();
   void loadPCaloHits(const edm::Event & iEvent);
   void geVtoGainAdc(float e,unsigned& gain,unsigned &adc) const;
+  void noisifyTriggerTowers();
+  void noisifyTriggerTower(unsigned tthi);
   
  private:
   bool doDigis_;
@@ -55,6 +59,23 @@ class EcalBarrelRecHitsMaker
   unsigned minAdc_;
   unsigned maxAdc_;
   float t1_,t2_,sat_;
+
+  const EcalTrigTowerConstituentsMap* eTTmap_;  
+  // Array of the DetIds
+  std::vector<EcalTrigTowerDetId> theTTDetIds_;
+  //Energy of the TT
+  std::vector<float> TTEnergy_;
+  // shot TTs
+  std::vector<unsigned> theFiredTTs_;
+  // treated TTs
+  std::vector<bool> treatedTTs_;
+  // neighboring TT DetIds
+  std::vector<std::vector<int> > neighboringTTs_;
+
+  // selective readout threshold
+  float SRThreshold_;
+  int SREtaSize_;
+  int SRPhiSize_;
 };
 
 #endif
