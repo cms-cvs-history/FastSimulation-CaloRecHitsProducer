@@ -227,6 +227,7 @@ void EcalBarrelRecHitsMaker::noisifyTriggerTower(unsigned tthi)
 	  float energy = calib*random_->gaussShoot(0.,noise_);
 	  theCalorimeterHits_[hashedindex]=energy;
 	  TTEnergy_[tthi]+=energy;
+	  theFiredCells_.push_back(hashedindex);
 	}
     }
   treatedTTs_[tthi]=true;
@@ -241,8 +242,8 @@ void EcalBarrelRecHitsMaker::init(const edm::EventSetup &es,bool doDigis,bool do
   edm::ESHandle<CaloGeometry> pG;
   es.get<CaloGeometryRecord>().get(pG);   
 
-  edm::ESHandle<CaloTopology> theCaloTopology;
-  es.get<CaloTopologyRecord>().get(theCaloTopology);     
+//  edm::ESHandle<CaloTopology> theCaloTopology;
+//  es.get<CaloTopologyRecord>().get(theCaloTopology);     
 
   edm::ESHandle<EcalTrigTowerConstituentsMap> hetm;
   es.get<IdealGeometryRecord>().get(hetm);

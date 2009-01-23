@@ -15,7 +15,9 @@
 #include "Geometry/EcalAlgo/interface/EcalEndcapGeometry.h"
 #include "CondFormats/EcalObjects/interface/EcalIntercalibConstants.h"
 #include "CondFormats/DataRecord/interface/EcalIntercalibConstantsRcd.h"
+#include "Geometry/CaloTopology/interface/EcalTrigTowerConstituentsMap.h"
 
+#include <algorithm>
 
 EcalEndcapRecHitsMaker::EcalEndcapRecHitsMaker(edm::ParameterSet const & p, 
 
@@ -28,7 +30,16 @@ EcalEndcapRecHitsMaker::EcalEndcapRecHitsMaker(edm::ParameterSet const & p,
   threshold_ = RecHitsParameters.getParameter<double>("Threshold");
   refactor_ = RecHitsParameters.getParameter<double> ("Refactor");
   refactor_mean_ = RecHitsParameters.getParameter<double> ("Refactor_mean");
-  theCalorimeterHits_.resize(20000,0.);
+  theCalorimeterHits_.resize(14648,0.);
+  towerOf_.resize(14648);
+  theTTDetIds_.resize(1440);
+  SCofTT_.resize(1440);
+  SCHighInterest_.resize(633,0);
+  treatedSC_.resize(633,false);
+  TTofSC_.resize(633);
+  TTEnergy_.resize(1440,0.);
+  CrystalsinSC_.resize(633);
+  SRThreshold_=1.;
   noisified_ = (noise_==0.);
   edm::ParameterSet CalibParameters=RecHitsParameters.getParameter<edm::ParameterSet>("ContFact"); 
   double c1 = CalibParameters.getParameter<double>("EEs25notContainment");
@@ -64,6 +75,23 @@ void EcalEndcapRecHitsMaker::clean()
   theFiredCells_.clear();
   // If the noise is set to 0. No need to simulate it. 
   noisified_ = (noise_==0.);
+
+  size=theFiredTTs_.size();
+  //  std::cout << " Number of barrel TT " << size << std::endl;
+  for(unsigned itt=0;itt<size;++itt)
+    {
+      //      std::cout << " TT " << theFiredTTs_[itt] << " " << TTEnergy_[theFiredTTs_[itt]] << std::endl;
+      TTEnergy_[theFiredTTs_[itt]]=0.;
+    }  
+  theFiredTTs_.clear();
+ 
+  size=theFiredSC_.size();
+  for(unsigned isc=0;isc<size;++isc)
+    {
+      SCHighInterest_[theFiredSC_[isc]]=false;
+      treatedSC_[theFiredSC_[isc]]=false;
+    }
+  theFiredSC_.clear();
 }
 
 
@@ -92,13 +120,11 @@ void EcalEndcapRecHitsMaker::loadEcalEndcapRecHits(edm::Event &iEvent,EERecHitCo
 	   //ecalDigis.push_back(myDataFrame);
 	}
 
-      // It is safer to update the orignal array in case this methods is called several times
-      if (!noisified_ )  theCalorimeterHits_[icell] += random_->gaussShoot(0.,noise_);
-      
       // If the energy+noise is below the threshold, a hit is nevertheless created, otherwise, there is a risk that a "noisy" hit 
       // is afterwards put in this cell which would not be correct. 
       float energy=theCalorimeterHits_[icell];
-      if ( energy<threshold_ ) 
+      
+      if ( energy<threshold_ && !isHighInterest(icell)) 
 	{
 	  theCalorimeterHits_[icell]=0.;
 	  energy=0.;
@@ -127,7 +153,6 @@ void EcalEndcapRecHitsMaker::loadPCaloHits(const edm::Event & iEvent)
 
   MixCollection<PCaloHit>::iterator cficalo;
   MixCollection<PCaloHit>::iterator cficaloend=colcalo->end();
-  float calib=1.;
   for (cficalo=colcalo->begin(); cficalo!=cficaloend;cficalo++) 
     {
 
@@ -136,18 +161,73 @@ void EcalEndcapRecHitsMaker::loadPCaloHits(const edm::Event & iEvent)
       if(theCalorimeterHits_[hashedindex]==0.)
 	{
 	  theFiredCells_.push_back(hashedindex); 
+	  if (!noisified_ )  theCalorimeterHits_[hashedindex] += random_->gaussShoot(0.,noise_); 
 	}
       // the famous 1/0.97 calibration factor is applied here ! 
-      calib=calibfactor_;
       // the miscalibration is applied here:
-      if(doMisCalib_) calib*=theCalibConstants_[hashedindex];
+      float calib=(doMisCalib_) ? calibfactor_*theCalibConstants_[hashedindex]:calibfactor_;
       // cficalo->energy can be 0 (a 7x7 grid is always built), in this case, one should not kill the cell (for later noise injection), but it should
       // be added only once.  This is a dirty trick. 
       float energy=(cficalo->energy()==0.) ? 0.000001 : cficalo->energy() ;
-      theCalorimeterHits_[hashedindex]+=energy*calib;   
+      energy*=calib;
+      theCalorimeterHits_[hashedindex]+=energy;   
+
+      // Now deal with the TTs
+      int TThashedindex=towerOf_[hashedindex];
+
+      if(TTEnergy_[TThashedindex]==0.)
+	{
+	  theFiredTTs_.push_back(TThashedindex);
+	}
+       TTEnergy_[TThashedindex]+=energy;
     }
 }
 
+void EcalEndcapRecHitsMaker::noisifyTriggerTowers()
+{
+  if(noise_==0.) return;
+  // noise should be injected in all the Super-crystals contained in each trigger tower 
+  unsigned nTT=theFiredTTs_.size();
+  for(unsigned itt=0;itt<nTT;++itt)
+    {      
+      // shoot noise in the trigger tower 
+      noisifySuperCrystals(theFiredTTs_[itt]);
+    }
+}
+
+void EcalEndcapRecHitsMaker::noisifySuperCrystals(int tthi)
+{
+  unsigned size=SCofTT_[tthi].size();
+  // get the list of Supercrytals
+  for(unsigned isc=0;isc<size;++isc)
+    {
+      // should not do it twice
+      if(treatedSC_[isc]) continue;
+      
+      const std::vector<int> & xtals(CrystalsinSC_[SCofTT_[tthi][isc]]);
+      unsigned nxtals=xtals.size();
+      for(unsigned ix=0;ix<nxtals;++ix)
+	{
+	  unsigned hashedindex=xtals[ix];
+	  // check if the crystal has already something or not 
+	  if(theCalorimeterHits_[hashedindex]==0.)
+	    {
+	      float calib = (doMisCalib_) ? calibfactor_*theCalibConstants_[hashedindex]:calibfactor_;
+	      float energy = calib*random_->gaussShoot(0.,noise_);
+	      theCalorimeterHits_[hashedindex]=energy;
+	      theFiredCells_.push_back(hashedindex);
+	      // the corresponding trigger tower should be updated 
+	      int tthi=towerOf_[hashedindex];
+	      if(TTEnergy_[tthi]==0.)
+		{
+		  theFiredTTs_.push_back(tthi);
+		}
+	      TTEnergy_[tthi]+=energy;
+	    }
+	}
+      treatedSC_[isc]=true;
+    }
+}
 
 void EcalEndcapRecHitsMaker::init(const edm::EventSetup &es,bool doDigis,bool domiscalib)  
 {
@@ -158,12 +238,51 @@ void EcalEndcapRecHitsMaker::init(const edm::EventSetup &es,bool doDigis,bool do
   edm::ESHandle<CaloGeometry> pG;
   es.get<CaloGeometryRecord>().get(pG);   
   
+  edm::ESHandle<EcalTrigTowerConstituentsMap> hetm;
+  es.get<IdealGeometryRecord>().get(hetm);
+  eTTmap_ = &(*hetm);
+
   const EcalEndcapGeometry * myEcalEndcapGeometry = dynamic_cast<const EcalEndcapGeometry*>(pG->getSubdetectorGeometry(DetId::Ecal,EcalEndcap));
   const std::vector<DetId>& vec(myEcalEndcapGeometry->getValidDetIds(DetId::Ecal,EcalEndcap));
   unsigned size=vec.size();    
   for(unsigned ic=0; ic<size; ++ic) 
     {
-      endcapRawId_[EEDetId(vec[ic]).hashedIndex()]=vec[ic].rawId();
+      int cellhashedindex=EEDetId(vec[ic]).hashedIndex();
+      endcapRawId_[cellhashedindex]=vec[ic].rawId();
+
+      // a bit of trigger tower and SuperCrystals algebra
+      // first get the trigger tower 
+      EcalTrigTowerDetId towid1= eTTmap_->towerOf(vec[ic]);
+      int tthashedindex=TThashedIndexforEE(towid1);
+      towerOf_[cellhashedindex]=tthashedindex;
+
+      // get the SC of the cell
+      int schi=SChashedIndex(EEDetId(vec[ic]));
+      if(schi<0) 
+	{
+	  //	  std::cout << " OOps " << schi << std::endl;
+	  EEDetId myID(vec[ic]);
+	  //	  std::cout << " DetId " << myID << " " << myID.isc() << " " <<  myID.zside() <<  " " << myID.isc()+(myID.zside()+1)*158 << std::endl;
+	}
+
+      // check if this SC is already in the list of the corresponding TT
+      std::vector<int>::const_iterator itcheck=find(SCofTT_[tthashedindex].begin(),
+						    SCofTT_[tthashedindex].end(),
+						    schi);
+      if(itcheck==SCofTT_[tthashedindex].end())
+	SCofTT_[tthashedindex].push_back(schi);
+      
+      // check if this crystal is already in the list of crystals per sc
+      itcheck=find(CrystalsinSC_[schi].begin(),CrystalsinSC_[schi].end(),cellhashedindex);
+      if(itcheck==CrystalsinSC_[schi].end())
+	CrystalsinSC_[schi].push_back(cellhashedindex);
+
+      // check if the TT is already in the list of sc
+      //      std::cout << " SCHI " << schi << " " << TTofSC_.size() << std::endl;
+      //      std::cout << TTofSC_[schi].size() << std::endl;
+      itcheck=find(TTofSC_[schi].begin(),TTofSC_[schi].end(),tthashedindex);
+      if(itcheck==TTofSC_[schi].end())
+	TTofSC_[schi].push_back(tthashedindex);
     }
   //  std::cout << " Made the array " << std::endl;
   // Stores the miscalibration constants
@@ -212,4 +331,26 @@ void EcalEndcapRecHitsMaker::geVtoGainAdc(float e,unsigned & gain, unsigned &adc
       gain = 3; // x12
       adc = std::min(minAdc_+(unsigned)(e*geVToAdc3_),maxAdc_);
     }
+}
+
+bool EcalEndcapRecHitsMaker::isHighInterest(const EEDetId& detid)
+{
+  int schi=SChashedIndex(detid);
+  
+  // check if it has already been treated or not
+  // 0 <=> not treated
+  // 1 <=> high interest
+  // -1 <=> low interest
+  if(SCHighInterest_[schi]!=0) return (SCHighInterest_[schi]>0);
+  
+  // now look if a TT contributing is of high interest
+  const std::vector<int> & tts(TTofSC_[schi]);
+  unsigned size=tts.size();
+  bool result=false;
+  for(unsigned itt=0;itt<size;++itt)
+    {
+      if(TTEnergy_[tts[itt]]>SRThreshold_) result=true;
+    }
+  SCHighInterest_[schi]=(result)? 1:-1;
+  return result;
 }
