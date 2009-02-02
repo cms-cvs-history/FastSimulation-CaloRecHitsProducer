@@ -28,6 +28,7 @@ EcalEndcapRecHitsMaker::EcalEndcapRecHitsMaker(edm::ParameterSet const & p,
   inputCol_=RecHitsParameters.getParameter<edm::InputTag>("MixedSimHits");
   noise_ = RecHitsParameters.getParameter<double>("Noise");
   threshold_ = RecHitsParameters.getParameter<double>("Threshold");
+  SRThreshold_ = RecHitsParameters.getParameter<double> ("SRThreshold");
   refactor_ = RecHitsParameters.getParameter<double> ("Refactor");
   refactor_mean_ = RecHitsParameters.getParameter<double> ("Refactor_mean");
   theCalorimeterHits_.resize(14648,0.);
@@ -37,9 +38,9 @@ EcalEndcapRecHitsMaker::EcalEndcapRecHitsMaker(edm::ParameterSet const & p,
   SCHighInterest_.resize(633,0);
   treatedSC_.resize(633,false);
   TTofSC_.resize(633);
-  TTEnergy_.resize(1440,0.);
+  TTTEnergy_.resize(1440,0.);
   CrystalsinSC_.resize(633);
-  SRThreshold_=1.;
+  sinTheta_.resize(7324,0.);
   noisified_ = (noise_==0.);
   edm::ParameterSet CalibParameters=RecHitsParameters.getParameter<edm::ParameterSet>("ContFact"); 
   double c1 = CalibParameters.getParameter<double>("EEs25notContainment");
@@ -80,18 +81,27 @@ void EcalEndcapRecHitsMaker::clean()
   //  std::cout << " Number of barrel TT " << size << std::endl;
   for(unsigned itt=0;itt<size;++itt)
     {
-      //      std::cout << " TT " << theFiredTTs_[itt] << " " << TTEnergy_[theFiredTTs_[itt]] << std::endl;
-      TTEnergy_[theFiredTTs_[itt]]=0.;
+      //      std::cout << " TT " << theFiredTTs_[itt] << " " << TTTEnergy_[theFiredTTs_[itt]] << std::endl;
+      TTTEnergy_[theFiredTTs_[itt]]=0.;
     }  
   theFiredTTs_.clear();
  
   size=theFiredSC_.size();
   for(unsigned isc=0;isc<size;++isc)
     {
-      SCHighInterest_[theFiredSC_[isc]]=false;
+      SCHighInterest_[theFiredSC_[isc]]=0;
       treatedSC_[theFiredSC_[isc]]=false;
     }
   theFiredSC_.clear();
+
+
+
+//  for(unsigned ic=0;ic<TTTEnergy_.size();++ic)
+//    if(TTTEnergy_[ic]!=0.) std::cout << " TT " << ic << " not cleaned " << std::endl;
+//  for(unsigned ic=0;ic<SCHighInterest_.size();++ic)
+//    if(SCHighInterest_[ic]!=0) std::cout << " SCHighInterest " << ic << SCHighInterest_[ic] << " not cleaned " << std::endl;
+//  for(unsigned ic=0;ic<treatedSC_.size();++ic)
+//    if(treatedSC_[ic]) std::cout << " treatedSC " << ic << treatedSC_[ic] << " not cleaned " << std::endl;
 }
 
 
@@ -124,9 +134,11 @@ void EcalEndcapRecHitsMaker::loadEcalEndcapRecHits(edm::Event &iEvent,EERecHitCo
       // is afterwards put in this cell which would not be correct. 
       float energy=theCalorimeterHits_[icell];
       
-      if ( energy<threshold_ && !isHighInterest(icell)) 
+      if ( energy<threshold_ && !isHighInterest(myDetId)) 
 	{
 	  theCalorimeterHits_[icell]=0.;
+	  //	  int TThashedindex=towerOf_[icell];
+	  //	  std::cout << " SR " << TTTEnergy_[TThashedindex] << " Cell energy " << energy << " 0 "<< std::endl;
 	  energy=0.;
 	}
       else 
@@ -144,13 +156,12 @@ void EcalEndcapRecHitsMaker::loadEcalEndcapRecHits(edm::Event &iEvent,EERecHitCo
 
 void EcalEndcapRecHitsMaker::loadPCaloHits(const edm::Event & iEvent)
 {
-
+  //  std::cout << " loadPCaloHits " << std::endl;
   edm::Handle<CrossingFrame<PCaloHit> > cf;
   iEvent.getByLabel(inputCol_,cf);
   std::auto_ptr<MixCollection<PCaloHit> > colcalo(new MixCollection<PCaloHit>(cf.product(),std::pair<int,int>(0,0) ));
 
   theFiredCells_.reserve(colcalo->size());
-
   MixCollection<PCaloHit>::iterator cficalo;
   MixCollection<PCaloHit>::iterator cficaloend=colcalo->end();
   for (cficalo=colcalo->begin(); cficalo!=cficaloend;cficalo++) 
@@ -175,41 +186,55 @@ void EcalEndcapRecHitsMaker::loadPCaloHits(const edm::Event & iEvent)
       // Now deal with the TTs
       int TThashedindex=towerOf_[hashedindex];
 
-      if(TTEnergy_[TThashedindex]==0.)
+      if(TTTEnergy_[TThashedindex]==0.)
 	{
 	  theFiredTTs_.push_back(TThashedindex);
 	}
-       TTEnergy_[TThashedindex]+=energy;
+      // the same dirty trick as before. sinTheta is stored only for one endcap
+      TTTEnergy_[TThashedindex]+=energy*sinTheta_[(hashedindex<EEDetId::kEEhalf)? hashedindex : hashedindex-EEDetId::kEEhalf];
+
     }
+  //  std::cout << " Noisifying the TT " << std::endl;
+  noisifyTriggerTowers();
 }
 
 void EcalEndcapRecHitsMaker::noisifyTriggerTowers()
 {
   if(noise_==0.) return;
+
   // noise should be injected in all the Super-crystals contained in each trigger tower 
   unsigned nTT=theFiredTTs_.size();
   for(unsigned itt=0;itt<nTT;++itt)
     {      
       // shoot noise in the trigger tower 
-      noisifySuperCrystals(theFiredTTs_[itt]);
+      //      std::cout << " Treating " << theFiredTTs_[itt] << " " << theTTDetIds_[theFiredTTs_[itt]] << " " << TTTEnergy_[theFiredTTs_[itt]] << std::endl;       
+	noisifySuperCrystals(theFiredTTs_[itt]);
     }
 }
 
+// inject noise in all the supercrystals of a given trigger tower
 void EcalEndcapRecHitsMaker::noisifySuperCrystals(int tthi)
 {
   unsigned size=SCofTT_[tthi].size();
   // get the list of Supercrytals
   for(unsigned isc=0;isc<size;++isc)
     {
+      //      std::cout << " Looking at SC " << isc << " " << SCofTT_[tthi][isc] << std::endl;
       // should not do it twice
-      if(treatedSC_[isc]) continue;
+      if(treatedSC_[SCofTT_[tthi][isc]]) continue;
       
       const std::vector<int> & xtals(CrystalsinSC_[SCofTT_[tthi][isc]]);
       unsigned nxtals=xtals.size();
+      unsigned count=0;
+//      if (nxtals!=25)
+//	{
+//	  std::cout << " This SC has " << nxtals << " crystals " << std::endl;
+//	}
       for(unsigned ix=0;ix<nxtals;++ix)
 	{
 	  unsigned hashedindex=xtals[ix];
 	  // check if the crystal has already something or not 
+	  //	  std::cout << " Looking at crystal " << EEDetId(endcapRawId_[hashedindex]) << std::endl;
 	  if(theCalorimeterHits_[hashedindex]==0.)
 	    {
 	      float calib = (doMisCalib_) ? calibfactor_*theCalibConstants_[hashedindex]:calibfactor_;
@@ -217,15 +242,18 @@ void EcalEndcapRecHitsMaker::noisifySuperCrystals(int tthi)
 	      theCalorimeterHits_[hashedindex]=energy;
 	      theFiredCells_.push_back(hashedindex);
 	      // the corresponding trigger tower should be updated 
-	      int tthi=towerOf_[hashedindex];
-	      if(TTEnergy_[tthi]==0.)
+	      int newtthi=towerOf_[hashedindex];
+	      //	      std::cout << " Updatung TT " << newtthi << std::endl;
+	      if(TTTEnergy_[newtthi]==0.)
 		{
-		  theFiredTTs_.push_back(tthi);
+		  theFiredTTs_.push_back(newtthi);
 		}
-	      TTEnergy_[tthi]+=energy;
+	      TTTEnergy_[newtthi]+=energy*sinTheta_[(hashedindex<EEDetId::kEEhalf)? hashedindex : hashedindex-EEDetId::kEEhalf];
+	      ++count;
 	    }
 	}
-      treatedSC_[isc]=true;
+      treatedSC_[SCofTT_[tthi][isc]]=true;
+      //      std::cout << "SC " << SCofTT_[tthi][isc] << " done ; injected " << count << std::endl;
     }
 }
 
@@ -247,9 +275,12 @@ void EcalEndcapRecHitsMaker::init(const edm::EventSetup &es,bool doDigis,bool do
   unsigned size=vec.size();    
   for(unsigned ic=0; ic<size; ++ic) 
     {
-      int cellhashedindex=EEDetId(vec[ic]).hashedIndex();
+      EEDetId myDetId(vec[ic]);
+      int cellhashedindex=myDetId.hashedIndex();
       endcapRawId_[cellhashedindex]=vec[ic].rawId();
-
+      // trick to save a bit of memory. sin Theta is identical in EE+/-
+      if (cellhashedindex< EEDetId::kEEhalf)
+	sinTheta_[cellhashedindex]=std::sin(myEcalEndcapGeometry->getGeometry(myDetId)->getPosition().theta());
       // a bit of trigger tower and SuperCrystals algebra
       // first get the trigger tower 
       EcalTrigTowerDetId towid1= eTTmap_->towerOf(vec[ic]);
@@ -264,6 +295,8 @@ void EcalEndcapRecHitsMaker::init(const edm::EventSetup &es,bool doDigis,bool do
 	  EEDetId myID(vec[ic]);
 	  //	  std::cout << " DetId " << myID << " " << myID.isc() << " " <<  myID.zside() <<  " " << myID.isc()+(myID.zside()+1)*158 << std::endl;
 	}
+      
+      theTTDetIds_[tthashedindex]=towid1;
 
       // check if this SC is already in the list of the corresponding TT
       std::vector<int>::const_iterator itcheck=find(SCofTT_[tthashedindex].begin(),
@@ -335,22 +368,26 @@ void EcalEndcapRecHitsMaker::geVtoGainAdc(float e,unsigned & gain, unsigned &adc
 
 bool EcalEndcapRecHitsMaker::isHighInterest(const EEDetId& detid)
 {
+  //  std::cout << " is HI " ;
   int schi=SChashedIndex(detid);
-  
+  //  std::cout <<  detid << "  " << schi << " ";
   // check if it has already been treated or not
   // 0 <=> not treated
   // 1 <=> high interest
   // -1 <=> low interest
+  //  std::cout << SCHighInterest_[schi] << std::endl;
   if(SCHighInterest_[schi]!=0) return (SCHighInterest_[schi]>0);
   
   // now look if a TT contributing is of high interest
   const std::vector<int> & tts(TTofSC_[schi]);
   unsigned size=tts.size();
   bool result=false;
-  for(unsigned itt=0;itt<size;++itt)
+  for(unsigned itt=0;itt<size&&!result;++itt)
     {
-      if(TTEnergy_[tts[itt]]>SRThreshold_) result=true;
+      //      std::cout << " Checking TT " << tts[itt] << std::endl;
+      if(TTTEnergy_[tts[itt]]>SRThreshold_) result=true;
     }
   SCHighInterest_[schi]=(result)? 1:-1;
+  theFiredSC_.push_back(schi);
   return result;
 }

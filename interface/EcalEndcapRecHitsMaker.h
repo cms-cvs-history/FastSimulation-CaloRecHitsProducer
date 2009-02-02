@@ -96,9 +96,11 @@ class EcalEndcapRecHitsMaker
   // the list of fired TT
   std::vector<int> theFiredTTs_;
   // the energy in the TT
-  std::vector<float> TTEnergy_;
+  std::vector<float> TTTEnergy_;
   // the cells in each SC
   std::vector<std::vector<int> > CrystalsinSC_;
+  // the sin(theta) of the cell
+  std::vector<float> sinTheta_;
   
   // selective readout threshold
   float SRThreshold_;

@@ -30,8 +30,10 @@ class EcalBarrelRecHitsMaker
   void loadPCaloHits(const edm::Event & iEvent);
   void geVtoGainAdc(float e,unsigned& gain,unsigned &adc) const;
   void noisifyTriggerTowers();
-  void noisifyTriggerTower(unsigned tthi);
-  
+  bool noisifyTriggerTower(unsigned tthi);
+  bool isHighInterest(int tthi);
+
+
  private:
   bool doDigis_;
   bool doMisCalib_;
@@ -63,19 +65,27 @@ class EcalBarrelRecHitsMaker
   const EcalTrigTowerConstituentsMap* eTTmap_;  
   // Array of the DetIds
   std::vector<EcalTrigTowerDetId> theTTDetIds_;
-  //Energy of the TT
-  std::vector<float> TTEnergy_;
+  // Transverse Energy of the TT
+  std::vector<float> TTTEnergy_;
   // shot TTs
   std::vector<unsigned> theFiredTTs_;
   // treated TTs
   std::vector<bool> treatedTTs_;
   // neighboring TT DetIds
   std::vector<std::vector<int> > neighboringTTs_;
+  // the crystals in a given TT 
+  std::vector<std::vector<int> > crystalsinTT_;
+  // the towers which have been looked at 
+  std::vector<int> theTTofHighInterest_;
+  // the status of the towers. A tower is of high interest if it or one of its neighbour is above the threshold
+  std::vector<int> TTHighInterest_;
 
   // selective readout threshold
   float SRThreshold_;
   int SREtaSize_;
   int SRPhiSize_;
+  // theta of the ieta 
+  std::vector<float> sinTheta_;
 };
 
 #endif
