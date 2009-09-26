@@ -14,6 +14,8 @@
 <use name=DQMServices/Core>
 
 <library file=DigiCheck.cc name=DigiCheck>
+<flags EDM_PLUGIN=1>
+</library>
 <library file=NoiseCheck.cc name=NoiseCheck>
 <flags EDM_PLUGIN=1>
 </library>
