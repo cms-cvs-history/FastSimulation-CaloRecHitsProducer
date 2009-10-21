@@ -25,6 +25,7 @@
 #include "DataFormats/CaloTowers/interface/CaloTowerDetId.h"
 #include "DataFormats/EcalDetId/interface/EcalSubdetector.h"
 
+#include "CondFormats/DataRecord/interface/EcalChannelStatusRcd.h"
 #include "CLHEP/GenericFunctions/Erf.hh"
 //#include <algorithm>
 
@@ -41,7 +42,9 @@ EcalBarrelRecHitsMaker::EcalBarrelRecHitsMaker(edm::ParameterSet const & p,
   SRThreshold_ = RecHitsParameters.getParameter<double> ("SRThreshold");
   SREtaSize_ = RecHitsParameters.getUntrackedParameter<int> ("SREtaSize",1);
   SRPhiSize_ = RecHitsParameters.getUntrackedParameter<int> ("SRPhiSize",1);
-
+  simulateDeadTowers_ = RecHitsParameters.getParameter<bool> ("SimulateDeadTowers");
+  simulateDeadTowerRecovery_ = RecHitsParameters.getParameter<bool> ("SimulateDeadTowerRecovery");
+ 
   theCalorimeterHits_.resize(EBDetId::kSizeForDenseIndexing,0.);
   crystalsinTT_.resize(2448);
   TTTEnergy_.resize(2448,0.);
@@ -144,6 +147,7 @@ void EcalBarrelRecHitsMaker::loadEcalBarrelRecHits(edm::Event &iEvent,EBRecHitCo
       
       // If the energy+noise is below the threshold, a hit is nevertheless created, otherwise, there is a risk that a "noisy" hit 
       // is afterwards put in this cell which would not be correct. 
+
       float energy=theCalorimeterHits_[icell];
       //      std::cout << myDetId << " Energy " << theCalorimeterHits_[icell] << " " << TTTEnergy_[TThashedindex] << " " << isHighInterest(TThashedindex) << std::endl;
       if ( SRThreshold_ && energy < threshold_  && !isHighInterest(TThashedindex))
@@ -164,8 +168,18 @@ void EcalBarrelRecHitsMaker::loadEcalBarrelRecHits(edm::Event &iEvent,EBRecHitCo
 //      std::cout << " Threshold ok " << std::endl;
 //      std::cout << " Raw Id " << barrelRawId_[icell] << std::endl;
 //      std::cout << " Adding " << icell << " " << barrelRawId_[icell] << " " << energy << std::endl;
+
+      uint16_t flag = deadChannelTreatment(myDetId,icell,TThashedindex);
+      // if flag!=0, "energy" has been overriden 
+      if(flag)
+	energy = theCalorimeterHits_[icell];
+      
       if(energy!=0.)
-	ecalHits.push_back(EcalRecHit(myDetId,energy,0.));
+	{ 
+	  EcalRecHit myRecHit(myDetId,energy,0.,flag);
+	  //	  if(flag!=0) std::cout << " Storing " << myDetId << " " << myRecHit << std::endl;
+	  ecalHits.push_back(EcalRecHit(myDetId,energy,0.));
+	}
       //      std::cout << " Hit stored " << std::endl;
     }
   //  std::cout << " Done " << std::endl;
@@ -388,6 +402,14 @@ void EcalBarrelRecHitsMaker::init(const edm::EventSetup &es,bool doDigis,bool do
   //  std::cout << " Got the geometry " << myEcalBarrelGeometry << std::endl;
   const std::vector<DetId>& vec(myEcalBarrelGeometry->getValidDetIds(DetId::Ecal,EcalBarrel));
   unsigned size=vec.size();    
+  
+  // Retrieve the good/bad channels from the DB
+  edm::ESHandle<EcalChannelStatus> pEcs;
+  es.get<EcalChannelStatusRcd>().get(pEcs);
+  const EcalChannelStatus* ecs = 0;
+  if( pEcs.isValid() ) ecs = pEcs.product();
+  chanStatus_ = & ecs->barrelItems();
+
   for(unsigned ic=0; ic<size; ++ic) 
     {
       EBDetId myDetId(vec[ic]);
@@ -434,7 +456,7 @@ void EcalBarrelRecHitsMaker::init(const edm::EventSetup &es,bool doDigis,bool do
       if(ietamax==0) ietamax=1;
       int iphimin=iphiPivot-SRPhiSize_;
       int iphimax=iphiPivot+SRPhiSize_;
-      for(int ieta=ietamin;ieta<=ietamax;)
+      for(int ieta=ietamin;ieta<=ietamax;) 
 	{
 	  int iz=(ieta>0)? 1 : -1; 
 	  for(int iphi=iphimin;iphi<=iphimax;)
@@ -552,3 +574,29 @@ bool EcalBarrelRecHitsMaker::isHighInterest(int tthi)
   theTTofHighInterest_.push_back(tthi);
   return result;
 }
+uint16_t EcalBarrelRecHitsMaker::deadChannelTreatment(const EBDetId & myDetId, unsigned icell,int tthashedindex)
+{
+  if(!simulateDeadTowers_) return EcalRecHit::kGood;
+  uint16_t flag=(*chanStatus_)[icell].getStatusCode();
+  if(flag==0) return EcalRecHit::kGood;
+  
+  if(flag==13)
+    {
+      if(simulateDeadTowerRecovery_) // energy of the TT /25
+	{
+	  // implement TT saturation
+	  double TTTEnergy = (TTTEnergy_[tthashedindex] > 64 ) ? 64 : TTTEnergy_[tthashedindex] ;
+	  theCalorimeterHits_[icell] = TTTEnergy/sinTheta_[myDetId.ietaAbs()]/25;
+	  //	  std::cout << myDetId << " " << TTTEnergy_[tthashedindex] << " " << theCalorimeterHits_[icell] << std::endl;
+	  return EcalRecHit::kTowerRecovered;
+	}
+      else   //0 
+	{
+	  theCalorimeterHits_[icell]=0.;
+	  return EcalRecHit::kDead;
+	}
+    }
+  
+  return 0;
+}
+

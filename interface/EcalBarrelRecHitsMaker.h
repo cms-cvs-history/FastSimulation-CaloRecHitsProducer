@@ -5,6 +5,8 @@
 #include "DataFormats/EcalDigi/interface/EcalDigiCollections.h"
 #include "DataFormats/EcalDetId/interface/EcalTrigTowerDetId.h"
 #include "FWCore/ParameterSet/interface/InputTag.h"
+#include "CondFormats/EcalObjects/interface/EcalChannelStatus.h"
+
 //#include <boost/cstdint.hpp>
 
 class RandomEngine;
@@ -34,7 +36,7 @@ class EcalBarrelRecHitsMaker
   bool noisifyTriggerTower(unsigned tthi);
   void randomNoisifier();
   bool isHighInterest(int tthi);
-
+  uint16_t deadChannelTreatment(const EBDetId &, unsigned icell, int tthashedindex);
 
  private:
   bool doDigis_;
@@ -67,6 +69,9 @@ class EcalBarrelRecHitsMaker
   unsigned maxAdc_;
   float t1_,t2_,sat_;
 
+ // the channel status map
+  const std::vector<EcalChannelStatusCode> * chanStatus_;
+  
   const EcalTrigTowerConstituentsMap* eTTmap_;  
   // Array of the DetIds
   std::vector<EcalTrigTowerDetId> theTTDetIds_;
@@ -89,6 +94,8 @@ class EcalBarrelRecHitsMaker
   float SRThreshold_;
   int SREtaSize_;
   int SRPhiSize_;
+  bool simulateDeadTowers_ ;
+  bool simulateDeadTowerRecovery_ ;
   // theta of the ieta 
   std::vector<float> sinTheta_;
 };
