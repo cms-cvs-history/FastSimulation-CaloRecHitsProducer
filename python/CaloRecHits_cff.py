@@ -37,12 +37,14 @@ ecalRecHit = cms.EDProducer("CaloRecHitsProducer",
                                                        Noise = cms.double(-1.),
                                                        NoiseADC = cms.double(2.52),
                                                        HighNoiseParameters = cms.vdouble(4.77,1.65,2.7,5.1),
-                                                       Threshold = cms.double(.32), 
+                                                       Threshold = cms.double(0.32), 
                                                        SRThreshold = cms.double(1.),
                                                        Refactor = cms.double(1.),
                                                        Refactor_mean = cms.double(1.),
                                                        MixedSimHits = cms.InputTag("mix","famosSimHitsEcalHitsEE"),
-                                                       ContFact = cms.PSet(ecal_notCont_sim)),
+                                                       ContFact = cms.PSet(ecal_notCont_sim),
+                                                       SimulateDeadTowers = cms.bool(False),
+                                                       SimulateDeadTowerRecovery = cms.bool(False))
                                                        ))
 
 

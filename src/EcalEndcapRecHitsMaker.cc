@@ -23,6 +23,7 @@
 
 #include "Geometry/CaloTopology/interface/EcalTrigTowerConstituentsMap.h"
 
+#include "CondFormats/DataRecord/interface/EcalChannelStatusRcd.h"
 #include "CLHEP/GenericFunctions/Erf.hh"
 
 #include <algorithm>
@@ -41,6 +42,8 @@ EcalEndcapRecHitsMaker::EcalEndcapRecHitsMaker(edm::ParameterSet const & p,
   refactor_mean_ = RecHitsParameters.getParameter<double> ("Refactor_mean");
   noiseADC_ = RecHitsParameters.getParameter<double>("NoiseADC");
   highNoiseParameters_ = RecHitsParameters.getParameter<std::vector<double> > ("HighNoiseParameters");
+  simulateDeadTowers_ = RecHitsParameters.getParameter<bool> ("SimulateDeadTowers");
+  simulateDeadTowerRecovery_ = RecHitsParameters.getParameter<bool> ("SimulateDeadTowerRecovery");
 
   theCalorimeterHits_.resize(EEDetId::kSizeForDenseIndexing,0.);
   applyZSCells_.resize(EEDetId::kSizeForDenseIndexing,true);
@@ -281,7 +284,7 @@ void EcalEndcapRecHitsMaker::randomNoisifier()
 
   // for debugging
   //  std::vector<int> listofNewTowers;
-  
+  // noise from DB - and injection everywhere
   if(noise_==-1. && !doCustomHighNoise_)
     ncells=EEDetId::kSizeForDenseIndexing;
 
@@ -384,6 +387,16 @@ void EcalEndcapRecHitsMaker::init(const edm::EventSetup &es,bool doDigis,bool do
   const EcalEndcapGeometry * myEcalEndcapGeometry = dynamic_cast<const EcalEndcapGeometry*>(pG->getSubdetectorGeometry(DetId::Ecal,EcalEndcap));
   const std::vector<DetId>& vec(myEcalEndcapGeometry->getValidDetIds(DetId::Ecal,EcalEndcap));
   unsigned size=vec.size();    
+
+
+  // Retrieve the good/bad channels from the DB
+  edm::ESHandle<EcalChannelStatus> pEcs;
+  es.get<EcalChannelStatusRcd>().get(pEcs);
+  const EcalChannelStatus* ecs = 0;
+  if( pEcs.isValid() ) ecs = pEcs.product();
+  chanStatus_ = & ecs->endcapItems();
+
+
   for(unsigned ic=0; ic<size; ++ic) 
     {
       EEDetId myDetId(vec[ic]);

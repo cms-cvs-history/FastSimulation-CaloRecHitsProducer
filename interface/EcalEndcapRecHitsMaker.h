@@ -5,6 +5,8 @@
 #include "DataFormats/EcalDigi/interface/EcalDigiCollections.h"
 #include "FWCore/ParameterSet/interface/InputTag.h"
 #include "DataFormats/EcalDetId/interface/EcalTrigTowerDetId.h"
+#include "CondFormats/EcalObjects/interface/EcalChannelStatus.h"
+
 //#include <boost/cstdint.hpp>
 
 class RandomEngine;
@@ -82,6 +84,9 @@ class EcalEndcapRecHitsMaker
   unsigned maxAdc_;
   float t1_,t2_,sat_;
 
+   // the channel status map
+  const std::vector<EcalChannelStatusCode> * chanStatus_;
+
   const EcalTrigTowerConstituentsMap* eTTmap_;  
 
   // arraws for the selective readout emulation
@@ -118,6 +123,8 @@ class EcalEndcapRecHitsMaker
   const std::vector<float> * ICMC_;
   // vector of parameter for custom noise simulation (size =4 : 0 & 1 define the gaussian shape 
   // of the noise ; 2 & 3 define the sigma and threshold in ADC counts of the *OFFLINE* amplitude
+  bool simulateDeadTowers_ ;
+  bool simulateDeadTowerRecovery_ ;
 
   std::vector<double> highNoiseParameters_ ; 
   bool doCustomHighNoise_;
