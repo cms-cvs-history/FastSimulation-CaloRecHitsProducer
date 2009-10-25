@@ -12,6 +12,10 @@ from SimCalorimetry.HcalSimProducers.hcalSimParameters_cfi import *
 # This includes is needed for the ECAL digis
 from SimCalorimetry.EcalTrigPrimProducers.ecalTriggerPrimitiveDigis_cff import *
 
+# This configuration file is complicated.  See 
+# https://twiki.cern.ch/twiki/bin/view/CMS/SWGuideFastSimCaloRecHit
+# for more information
+
 ecalRecHit = cms.EDProducer("CaloRecHitsProducer",
                             InputRecHitCollectionTypes = cms.vuint32(2, 3),
                             OutputRecHitCollections = cms.vstring('EcalRecHitsEB', 
