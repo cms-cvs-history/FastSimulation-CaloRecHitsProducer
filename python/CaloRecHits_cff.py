@@ -34,7 +34,7 @@ ecalRecHit = cms.EDProducer("CaloRecHitsProducer",
                                                        Refactor_mean = cms.double(1.),
                                                        MixedSimHits = cms.InputTag("mix","famosSimHitsEcalHitsEB"),
                                                        ContFact = cms.PSet(ecal_notCont_sim),
-                                                       SimulateDeadTowers = cms.bool(False),
+                                                       SimulateDeadTowers = cms.bool(True),
                                                        SimulateDeadTowerRecovery = cms.bool(False)),
                                                        
                                                        ECALEndcap = cms.PSet(
@@ -47,7 +47,7 @@ ecalRecHit = cms.EDProducer("CaloRecHitsProducer",
                                                        Refactor_mean = cms.double(1.),
                                                        MixedSimHits = cms.InputTag("mix","famosSimHitsEcalHitsEE"),
                                                        ContFact = cms.PSet(ecal_notCont_sim),
-                                                       SimulateDeadTowers = cms.bool(False),
+                                                       SimulateDeadTowers = cms.bool(True),
                                                        SimulateDeadTowerRecovery = cms.bool(False))
                                                        ))
 
