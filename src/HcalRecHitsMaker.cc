@@ -23,6 +23,7 @@
 #include "CalibCalorimetry/CaloMiscalibTools/interface/CaloMiscalibMapHcal.h"
 #include "CondFormats/HcalObjects/interface/HcalRespCorrs.h"
 #include "CondFormats/DataRecord/interface/HcalRespCorrsRcd.h"
+#include "DataFormats/HcalDetId/interface/HcalDetId.h"
 
 #include "TFile.h"
 #include "TGraph.h"
@@ -70,7 +71,7 @@ HcalRecHitsMaker::HcalRecHitsMaker(edm::ParameterSet const & p, int det,
   if(det_==4)
     {
       hbhi_.reserve(2600);
-      hehi_.reserve(2600);
+      hehi_.reserve(HcalDetId::kHESize);
     }
   else if (det_==5)
     hohi_.reserve(2200);
@@ -145,18 +146,18 @@ void HcalRecHitsMaker::init(const edm::EventSetup &es,bool doDigis,bool doMiscal
 
   if(!initialized_) 
     {     
-      theDetIds_.resize(9201);
+      theDetIds_.resize(HcalDetId::kSizeForDenseIndexing);
       unsigned ncells=createVectorsOfCells(es);
       edm::LogInfo("CaloRecHitsProducer") << "Total number of cells in HCAL " << ncells << std::endl;
       hcalRecHits_.resize(maxIndex_+1,0.);
       edm::LogInfo("CaloRecHitsProducer") << "Largest HCAL hashedindex" << maxIndex_ << std::endl;
 
-      peds_.resize(9201);
-      gains_.resize(9201);
+      peds_.resize(HcalDetId::kSizeForDenseIndexing);
+      gains_.resize(HcalDetId::kSizeForDenseIndexing);
       if(doSaturation_)
-	sat_.resize(9201);
+	sat_.resize(HcalDetId::kSizeForDenseIndexing);
       if(noiseFromDb_) 
-	noisesigma_.resize(9201);
+	noisesigma_.resize(HcalDetId::kSizeForDenseIndexing);
       
       
       miscalib_.resize(maxIndex_+1,1.);
@@ -184,7 +185,7 @@ void HcalRecHitsMaker::init(const edm::EventSetup &es,bool doDigis,bool doMiscal
 	    }
 	}
       
-      
+
       // Open the histogram for the fC to ADC conversion
       gROOT->cd();
       edm::FileInPath myDataFile("FastSimulation/CaloRecHitsProducer/data/adcvsfc.root");
@@ -257,6 +258,12 @@ void HcalRecHitsMaker::init(const edm::EventSetup &es,bool doDigis,bool doMiscal
 
       for(unsigned ic=0;ic<nhecells_;++ic)
 	{
+//==> add to avoid crash
+          peds_[hehi_[ic]]=0.;
+          gains_[hehi_[ic]]=1.;
+          sat_[hehi_[ic]]=99999.;
+          continue;
+//==>          
 	  float gain= theDbService->getGain(theDetIds_[hehi_[ic]])->getValue(0);
 	  int ieta=theDetIds_[hehi_[ic]].ieta();
 	  float mgain=0.;
@@ -410,7 +417,8 @@ void HcalRecHitsMaker::loadHcalRecHits(edm::Event &iEvent,HBHERecHitCollection& 
       // Check if it is above the threshold
       if(energy<threshold_[subdet]) continue; 
       // apply RespCorr only to the RecHit
-      energy *= myRespCorr->getValues(theDetIds_[cellhashedindex])->getValue();
+//      energy *= myRespCorr->getValues(theDetIds_[cellhashedindex])->getValue();
+      energy *= 1.0;
       // poor man saturation
       if(energy>sat_[cellhashedindex]) 
 	{
@@ -485,6 +493,7 @@ void HcalRecHitsMaker::loadHcalRecHits(edm::Event &iEvent,HFRecHitCollection &hf
     }
   static HcalQIESample zeroSample(0,0,0,0);
 
+
   unsigned nhits=firedCells_.size();
   for(unsigned ihit=0;ihit<nhits;++ihit)
     {
@@ -540,8 +549,8 @@ unsigned HcalRecHitsMaker::createVectorOfSubdetectorCells(const CaloGeometry& cg
   for (std::vector<DetId>::const_iterator i=ids.begin(); i!=ids.end(); i++) 
     {
       HcalDetId myDetId(*i);
-      //      std::cout << myDetId << myHcalSimParameterMap_->simParameters(myDetId).simHitToPhotoelectrons() << std::endl;;
-      //      std::cout << " hi " << hi << " " theDetIds_.size() << std::endl;
+//            std::cout << myDetId << myHcalSimParameterMap_->simParameters(myDetId).simHitToPhotoelectrons() << std::endl;;
+//            std::cout << " hi " << hi << " " theDetIds_.size() << std::endl;
       unsigned hi=myDetId.hashed_index();
       theDetIds_[hi]=myDetId;
       //      std::cout << myDetId << " " << hi <<  std::endl;
@@ -556,6 +565,7 @@ unsigned HcalRecHitsMaker::createVectorOfSubdetectorCells(const CaloGeometry& cg
 // Takes a hit (from a PSimHit) and fills a map 
 void HcalRecHitsMaker::Fill(int id, float energy, std::vector<int>& theHits,float noise,float correctionfactor)
 {
+
   if(doMiscalib_) 
     energy*=miscalib_[id];
 
