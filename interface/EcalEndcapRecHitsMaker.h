@@ -38,7 +38,11 @@ class EcalEndcapRecHitsMaker
   inline  int SChashedIndex(int SC,int z) const {return SC+(z+1)*158;}
   inline int SChashedIndex(const EEDetId& detid) const {
     //    std::cout << "In SC hashedIndex " <<  detid.isc() << " " << detid.zside() << " " << detid.isc()+(detid.zside()+1)*158 << std::endl;
-    return detid.isc()+(detid.zside()+1)*158;}
+    if(doMultiLayers_)
+      return detid.isc()+((detid.zside()>0?1:-1) +1)*158;
+    else 
+      return detid.isc()+(detid.zside()+1)*158;
+  }
   inline int towerOf(const EEDetId& detid) const {return towerOf_[detid.hashedIndex()];}
   inline int towerOf(int hid) const {return towerOf_[hid];}
   void noisifyTriggerTowers();
@@ -121,6 +125,9 @@ class EcalEndcapRecHitsMaker
 
   std::vector<double> highNoiseParameters_ ; 
   bool doCustomHighNoise_;
+
+  bool doMultiLayers_;
+
 };
 
 #endif

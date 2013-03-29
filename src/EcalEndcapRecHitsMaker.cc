@@ -41,6 +41,7 @@ EcalEndcapRecHitsMaker::EcalEndcapRecHitsMaker(edm::ParameterSet const & p,
   refactor_mean_ = RecHitsParameters.getParameter<double> ("Refactor_mean");
   noiseADC_ = RecHitsParameters.getParameter<double>("NoiseADC");
   highNoiseParameters_ = RecHitsParameters.getParameter<std::vector<double> > ("HighNoiseParameters");
+  doMultiLayers_ = RecHitsParameters.getParameter<bool> ("doMultiLayers");
 
   theCalorimeterHits_.resize(EEDetId::kSizeForDenseIndexing,0.);
   applyZSCells_.resize(EEDetId::kSizeForDenseIndexing,true);
@@ -109,6 +110,8 @@ void EcalEndcapRecHitsMaker::clean()
 
 void EcalEndcapRecHitsMaker::loadEcalEndcapRecHits(edm::Event &iEvent,EERecHitCollection & ecalHits,EEDigiCollection & ecalDigis)
 {
+  //  double totEnergyAbsolute = 0;
+
   clean();
   loadPCaloHits(iEvent);
 
@@ -154,14 +157,20 @@ void EcalEndcapRecHitsMaker::loadEcalEndcapRecHits(edm::Event &iEvent,EERecHitCo
 	{
 	  ecalHits.push_back(EcalRecHit(myDetId,energy,0.));
 	}
+      //     totEnergyAbsolute += energy;
+
     }
   noisified_ = true;
+
+  //  std::cout << "totEnergyAbsolute = " <<  totEnergyAbsolute << std::endl;
 
 }
 
 void EcalEndcapRecHitsMaker::loadPCaloHits(const edm::Event & iEvent)
 {
-  //  std::cout << " loadPCaloHits " << std::endl;
+
+  double totEnergy = 0, totEnergyCalib = 0, totEnergyCalibSinTheta = 0;
+
   edm::Handle<CrossingFrame<PCaloHit> > cf;
   iEvent.getByLabel(inputCol_,cf);
   std::auto_ptr<MixCollection<PCaloHit> > colcalo(new MixCollection<PCaloHit>(cf.product(),std::pair<int,int>(0,0) ));
@@ -174,7 +183,7 @@ void EcalEndcapRecHitsMaker::loadPCaloHits(const edm::Event & iEvent)
 
       unsigned hashedindex = EEDetId(cficalo->id()).hashedIndex();      
       // Check if the hit already exists
-      float calib=(doMisCalib_) ? calibfactor_*theCalibConstants_[hashedindex]:calibfactor_;
+      float calib=(doMisCalib_ && !doMultiLayers_) ? calibfactor_*theCalibConstants_[hashedindex]:calibfactor_;
       if(theCalorimeterHits_[hashedindex]==0.)
 	{
 	  theFiredCells_.push_back(hashedindex); 
@@ -188,8 +197,13 @@ void EcalEndcapRecHitsMaker::loadPCaloHits(const edm::Event & iEvent)
 
       // cficalo->energy can be 0 (a 7x7 grid is always built), in this case, one should not kill the cell (for later noise injection), but it should
       // be added only once.  This is a dirty trick. 
+      //      std::cout << "energy = " << energy << " calib = " << calib << std::endl;
+      //      totEnergy += cficalo->energy();
       float energy=(cficalo->energy()==0.) ? 0.000001 : cficalo->energy() ;
       energy*=calib;
+      
+      totEnergyCalib += energy;
+
       theCalorimeterHits_[hashedindex]+=energy;   
 
       // Now deal with the TTs
@@ -202,10 +216,17 @@ void EcalEndcapRecHitsMaker::loadPCaloHits(const edm::Event & iEvent)
       // the same dirty trick as before. sinTheta is stored only for one endcap
       TTTEnergy_[TThashedindex]+=energy*sinTheta_[(hashedindex<EEDetId::kEEhalf)? hashedindex : hashedindex-EEDetId::kEEhalf];
 
+      //      totEnergyCalibSinTheta += TTTEnergy_[TThashedindex];
+
     }
   //  std::cout << " Noisifying the TT " << std::endl;
   noisifyTriggerTowers();
   randomNoisifier();
+
+  //  std:: cout << "doMisCalib_ = " << doMisCalib_ << " TotEnergyCalib = " << totEnergyCalib << std::endl;
+
+  //  std:: cout << "doMisCalib_ = " << doMisCalib_ << " TotEnergy = " << totEnergy << " totEnergyCalib = " << totEnergyCalib << " totEnergyCalibSinTheta = " << totEnergyCalibSinTheta << std::endl;
+
 }
 
 void EcalEndcapRecHitsMaker::noisifyTriggerTowers()
@@ -376,16 +397,17 @@ void EcalEndcapRecHitsMaker::init(const edm::EventSetup &es,bool doDigis,bool do
 
   edm::ESHandle<CaloGeometry> pG;
   es.get<CaloGeometryRecord>().get(pG);   
-  
   edm::ESHandle<EcalTrigTowerConstituentsMap> hetm;
   es.get<IdealGeometryRecord>().get(hetm);
   eTTmap_ = &(*hetm);
 
+
   const EcalEndcapGeometry * myEcalEndcapGeometry = dynamic_cast<const EcalEndcapGeometry*>(pG->getSubdetectorGeometry(DetId::Ecal,EcalEndcap));
   const std::vector<DetId>& vec(myEcalEndcapGeometry->getValidDetIds(DetId::Ecal,EcalEndcap));
-  unsigned size=vec.size();    
+  unsigned size=vec.size();  
   for(unsigned ic=0; ic<size; ++ic) 
     {
+
       EEDetId myDetId(vec[ic]);
       int cellhashedindex=myDetId.hashedIndex();
       endcapRawId_[cellhashedindex]=vec[ic].rawId();
@@ -397,19 +419,44 @@ void EcalEndcapRecHitsMaker::init(const edm::EventSetup &es,bool doDigis,bool do
 	}
       // a bit of trigger tower and SuperCrystals algebra
       // first get the trigger tower 
-      EcalTrigTowerDetId towid1= eTTmap_->towerOf(vec[ic]);
-      int tthashedindex=TThashedIndexforEE(towid1);
-      towerOf_[cellhashedindex]=tthashedindex;
 
-      // get the SC of the cell
-      int schi=SChashedIndex(EEDetId(vec[ic]));
+      EcalTrigTowerDetId towid1;
+      if (doMultiLayers_){
+	//	std::cout << "Do Multi Layers" << std::endl;
+
+	//**JC, play trick to suite 2N xstal segmentation. 
+	//all detid for rear xstals are just N+i, where i is the front xstal detid
+	if(ic<size/2) towid1= eTTmap_->towerOf(vec[ic]);
+	else towid1= eTTmap_->towerOf(vec[ic-size/2]);
+      } else {
+	EcalTrigTowerDetId towid1= eTTmap_->towerOf(vec[ic]);
+      }
+
+      int tthashedindex =TThashedIndexforEE(towid1);
+      towerOf_[cellhashedindex]=tthashedindex;
+      
+      int schi;
+      if (doMultiLayers_){
+	//	std::cout << "Do Multi Layers" << std::endl;
+
+	// get the SC of the cell
+	//**JC, play trick to suite 2N xstal segmentation. 
+	//all detid for rear xstals are just N+i, where i is the front xstal detid      
+	if(ic<size/2) schi=SChashedIndex(EEDetId(vec[ic]));
+	else schi=SChashedIndex(EEDetId(vec[ic-size/2]));
+      } else {
+	schi=SChashedIndex(EEDetId(vec[ic]));
+      }
+
+      /*
       if(schi<0) 
 	{
-	  //	  std::cout << " OOps " << schi << std::endl;
+	  std::cout << " OOps " << schi << std::endl;
 	  EEDetId myID(vec[ic]);
-	  //	  std::cout << " DetId " << myID << " " << myID.isc() << " " <<  myID.zside() <<  " " << myID.isc()+(myID.zside()+1)*158 << std::endl;
+	  std::cout << " DetId " << myID << " " << myID.isc() << " " <<  myID.zside() <<  " " << myID.isc()+(myID.zside()+1)*158 << std::endl;
 	}
-      
+      */
+
       theTTDetIds_[tthashedindex]=towid1;
 
       // check if this SC is already in the list of the corresponding TT
@@ -418,7 +465,7 @@ void EcalEndcapRecHitsMaker::init(const edm::EventSetup &es,bool doDigis,bool do
 						    schi);
       if(itcheck==SCofTT_[tthashedindex].end())
 	SCofTT_[tthashedindex].push_back(schi);
-      
+     
       // check if this crystal is already in the list of crystals per sc
       itcheck=find(CrystalsinSC_[schi].begin(),CrystalsinSC_[schi].end(),cellhashedindex);
       if(itcheck==CrystalsinSC_[schi].end())
@@ -431,7 +478,6 @@ void EcalEndcapRecHitsMaker::init(const edm::EventSetup &es,bool doDigis,bool do
       if(itcheck==TTofSC_[schi].end())
 	TTofSC_[schi].push_back(tthashedindex);
     }
-  //  std::cout << " Made the array " << std::endl;
   // Stores the miscalibration constants
   if(doMisCalib_||noise_==-1.)
     {
